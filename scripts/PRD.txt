@@ -1,0 +1,301 @@
+# Overview
+localCDN is a professional, full-stack image management website that enables users to upload, store, and manage images with detailed metadata control. Built using Next.js 15 and free-tier services also have paid serivce, it solves the problem of secure, organized image storage with privacy-conscious metadata management. ImgVault is for photographers, content creators, and anyone who needs a centralized system to store and access their images with customizable metadata and copy image url for cdn, download, share and more.
+
+# Core Features
+
+## Image Upload and Storage
+- Upload images from local machine via drag-and-drop or file selector
+- Bulk upload capability with real-time progress bars
+- Images stored in MongoDB Atlas (free tier) with optimized CDN delivery
+- Version history to track changes to images and metadata
+
+## Metadata Management
+- Option to strip all EXIF, IPTC, and other metadata on upload for privacy
+- Comprehensive metadata editor for adding or modifying:
+  - Title and description
+  - Tags for searchability
+  - Custom EXIF fields (camera, focal length, date, GPS coordinates)
+- Version control for metadata changes with ability to revert
+
+## Image Gallery and Browsing
+- Masonry or uniform-grid gallery with responsive design
+- Infinite scroll with optional classic pagination
+- Detailed view pages for each image
+- Advanced search by name, description, tags, or custom metadata
+- Copy-and-paste public URL functionality for embedding images elsewhere
+
+## Image Processing
+- Server-side optimization using Sharp
+- Automatic resizing to multiple breakpoints (thumbnail, medium, large)
+- Basic in-browser editing: crop, rotate, and annotate
+- Image compression for optimal performance
+
+## User Access Controls
+- Public vs. private galleries per user
+- Authentication via NextAuth.js
+- Personalized user profiles
+
+# User Experience
+
+## User Personas
+1. **Professional Photographer**: Needs organized storage with detailed EXIF data preservation and gallery presentation
+2. **Content Creator**: Requires quick access to images with easy embedding capabilities
+3. **Privacy-Conscious User**: Values the ability to strip metadata before uploading sensitive images
+4. **Casual User**: Wants simple image storage with basic organization features
+
+## Key User Flows
+1. **Upload Flow**:
+   - Drag images to upload zone or select files
+   - Choose whether to strip metadata
+   - View real-time upload progress
+   - Edit metadata post-upload via form
+
+2. **Gallery Browsing Flow**:
+   - View images in responsive grid layout
+   - Infinite scroll through collections
+   - Filter by tags, date, or custom metadata
+   - Click for detailed view
+
+3. **Image Management Flow**:
+   - Select images for bulk actions
+   - Edit metadata individually or in batches
+   - Track version history
+   - Toggle privacy settings
+
+## UI/UX Considerations
+- Mobile-first responsive design (1 column on mobile, 3-4 columns on desktop)
+- Full-width header with intuitive navigation (Home, Upload, Gallery, Profile)
+- Smooth animations and transitions using Framer Motion
+- Hover overlays on gallery images showing title and quick "Copy URL" action
+- Slide-over panels or modals for forms and detailed editing
+- Clear feedback on all user actions with appropriate loading states
+
+# Technical Architecture
+
+## System Components
+1. **Frontend Layer**:
+   - Next.js 15 App Router with React Server Components
+   - Tailwind CSS + DaisyUI for styling
+   - Framer Motion for animations
+   - Responsive layouts with progressive enhancement
+
+2. **Backend Services**:
+   - Next.js API Routes for server-side processing
+   - Authentication system using NextAuth.js
+   - Image processing pipeline using Sharp
+
+3. **Data Storage**:
+   - MongoDB Atlas (free tier) for metadata and references
+   - Cloudinary (free plan) for image storage and CDN
+
+## Data Models
+1. **User Model**:
+   ```
+   {
+     id: String,
+     name: String,
+     email: String,
+     images: [ImageRef],
+     settings: {
+       defaultStripMetadata: Boolean,
+       defaultPrivacy: String
+     }
+   }
+   ```
+
+2. **Image Model**:
+   ```
+   {
+     id: String,
+     userId: String,
+     title: String,
+     description: String,
+     tags: [String],
+     uploadDate: Date,
+     urls: {
+       original: String,
+       thumbnail: String,
+       medium: String,
+       large: String
+     },
+     metadata: {
+       stripped: Boolean,
+       custom: Object,
+       exif: Object
+     },
+     isPublic: Boolean,
+     versions: [VersionRef]
+   }
+   ```
+
+3. **Version Model**:
+   ```
+   {
+     id: String,
+     imageId: String,
+     timestamp: Date,
+     changes: Object,
+     metadata: Object
+   }
+   ```
+
+## APIs and Integrations
+1. **Internal APIs**:
+   - `/api/images`: CRUD operations for images
+   - `/api/auth`: Authentication endpoints
+   - `/api/metadata`: Metadata management
+   - `/api/upload`: Upload handling with processing
+
+2. **External Integrations**:
+   - Cloudinary API for image storage and transformations
+   - MongoDB Atlas for database operations
+   - NextAuth.js providers for authentication
+
+## Infrastructure Requirements
+- Vercel Hobby Plan for hosting Next.js application
+- MongoDB Atlas free tier (512 MB storage)
+- Cloudinary free plan (25 credits/month)
+- Client-side caching strategy for optimized performance
+- Server-side image processing via Sharp
+
+# Development Roadmap
+
+## Phase 1: MVP
+- Basic authentication with NextAuth.js (email/password)
+- Simple image upload from local machine
+- Option to strip metadata on upload
+- Basic metadata editor (title, description, tags)
+- Simple grid gallery view
+- Image detail page with metadata display
+- Copy URL functionality
+- Responsive design for mobile and desktop
+- MongoDB integration for data storage
+- Cloudinary integration for image hosting
+
+## Phase 2: Enhanced Features
+- Bulk upload capability
+- Drag-and-drop upload interface
+- Progress bars for uploads
+- Advanced metadata editing (custom fields, EXIF)
+- Improved search functionality
+- Infinite scroll implementation
+- Server-side image optimization
+- User profiles and settings
+- Public/private gallery toggle
+
+## Phase 3: Advanced Capabilities
+- Basic in-browser image editing (crop, rotate, annotate)
+- Version history for images and metadata
+- Automated backup system for metadata (JSON export)
+- Enhanced gallery views (masonry layout option)
+- Tagging system improvements
+- Bulk editing capabilities
+- Performance optimizations
+
+## Phase 4: Polish and Refinement
+- Advanced animation and transitions
+- Additional authentication providers
+- UI/UX improvements based on user feedback
+- Accessibility enhancements
+- Performance optimizations
+- Edge case handling and bug fixes
+
+# Logical Dependency Chain
+
+## Foundation (Must be built first)
+1. Authentication system with NextAuth.js
+2. Database models and MongoDB Atlas connection
+3. Cloudinary integration for image storage
+4. Basic API routes for CRUD operations
+
+## Core Functionality
+5. Single image upload with metadata stripping option
+6. Simple metadata editor
+7. Basic gallery view and image detail pages
+8. Public URL functionality
+
+## Enhanced Experience
+9. Improved upload experience (drag-drop, bulk, progress)
+10. Advanced metadata editing and search
+11. Responsive gallery with infinite scroll
+12. User settings and profile management
+
+## Advanced Features
+13. In-browser image editing
+14. Version history implementation
+15. Access control systems (public/private)
+16. Automated backup functionality
+
+# Risks and Mitigations
+
+## Technical Challenges
+- **Risk**: Free tier limitations (storage, bandwidth)
+  - **Mitigation**: Implement efficient image compression, optimize MongoDB queries, use caching strategies
+
+- **Risk**: Image processing performance issues
+  - **Mitigation**: Implement server-side processing with Sharp, utilize Cloudinary's transformation capabilities, consider progressive loading
+
+- **Risk**: Metadata management complexity
+  - **Mitigation**: Start with essential metadata fields, gradually introduce more complex features, ensure proper validation
+
+## Resource Constraints
+- **Risk**: Cloudinary free tier limitations (25 credits/month)
+  - **Mitigation**: Implement aggressive caching, optimize image sizes, consider fallback storage options
+
+- **Risk**: MongoDB Atlas free tier limitations (512 MB)
+  - **Mitigation**: Store only metadata and references in MongoDB, keep actual images in Cloudinary, implement data cleanup routines
+
+- **Risk**: Vercel Hobby Plan constraints
+  - **Mitigation**: Optimize serverless function usage, implement efficient client-side caching, minimize API calls
+
+## User Adoption Challenges
+- **Risk**: Complex UI deterring casual users
+  - **Mitigation**: Implement progressive disclosure of features, provide tooltips and guidance, focus on core functionality first
+
+- **Risk**: Performance issues on mobile devices
+  - **Mitigation**: Mobile-first design approach, lazy loading, reduced image quality on mobile when appropriate
+
+# Appendix
+
+## Technology Stack Details
+- **Frontend**:
+  - Next.js 15 (App Router + React Server Components)
+  - Tailwind CSS + DaisyUI
+  - Framer Motion for animations
+  - React Hook Form for form handling
+
+- **Backend**:
+  - Next.js API Routes
+  - Sharp for image processing
+  - NextAuth.js for authentication
+
+- **Storage & CDN**:
+  - MongoDB Atlas (M0 Free Tier)
+  - Cloudinary Free Plan
+
+- **Deployment**:
+  - Vercel Hobby Plan
+
+## UI/UX Specifications
+Typography:
+
+**Glassmorphism & Gradient Effects:
+
+**Layout & Components:
+  -Header: Transparent + gradient edge
+	-Sidebar: Collapsible with frosted glass styling
+	-Gallery Grid: Uses ShadCN Card component with .glass class
+	-Footer: Minimalist with frosted background and subtle blur
+
+**Animations (GSAP):
+	-Page Load Animations: Fade-in with stagger
+	-Button Hover Animations: Smooth scale
+	-Optional Gradient Shift: Background transitions using yoyo effect
+
+**Color & Visual Psychology:
+
+## Research Findings
+- Free image management solutions often lack metadata control features
+- Users prefer having both gallery and list views for different use cases
+- Privacy concerns are increasing among users regarding image metadata
+- Mobile upload functionality is considered essential by most users

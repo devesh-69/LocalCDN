@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LocalCDN
+
+A professional, full-stack image management website built with Next.js 15. LocalCDN allows users to upload, manage, and share images with complete metadata control.
+
+## Features
+
+- **Image Upload**: Upload images from your local machine with drag-and-drop support
+- **Metadata Control**: Option to strip all metadata or edit custom fields
+- **Gallery View**: Browse images in a responsive grid with infinite scroll
+- **Search & Filter**: Find images by name, description, tags, or custom metadata
+- **URL Sharing**: Copy public URLs for embedding images elsewhere
+- **Image Editing**: Basic in-browser editing capabilities
+- **Privacy Controls**: Set public or private access for your galleries
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), React, TypeScript, Tailwind CSS, DaisyUI
+- **Authentication**: NextAuth.js
+- **Database**: MongoDB Atlas (free tier)
+- **Storage**: Cloudinary (free tier)
+- **Image Processing**: Sharp.js
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 18+ or Bun
+- MongoDB Atlas account
+- Cloudinary account
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository
+   ```bash
+   git clone https://github.com/yourusername/localcdn.git
+   cd localcdn
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Install dependencies
+   ```bash
+   npm install
+   # or
+   bun install
+   ```
 
-## Learn More
+3. Create a `.env.local` file based on `.env.example` and add your configuration variables
 
-To learn more about Next.js, take a look at the following resources:
+4. Run the development server
+   ```bash
+   npm run dev
+   # or
+   bun dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+- `/app` - Next.js app router routes and page components
+- `/components` - Reusable UI components
+- `/lib` - Utility functions and shared logic
+- `/types` - TypeScript type definitions
+- `/public` - Static assets
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This application can be deployed on Vercel with zero configuration:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyourusername%2Flocalcdn)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
