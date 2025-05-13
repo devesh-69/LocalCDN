@@ -1,14 +1,14 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const Register = () => {
-  const { toast } = useToast();
+  const navigate = useNavigate();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -18,33 +18,26 @@ const Register = () => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
+      toast.error("Passwords do not match.");
       return;
     }
     
     setIsLoading(true);
     
     try {
-      // In the real implementation, this would connect to your Next.js API route
-      toast({
-        title: "Registration Process",
-        description: "This would connect to NextAuth.js in the full implementation",
-      });
-      
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // This is where you would handle response/errors
+      // Simulate successful registration
+      toast.success("Registration successful! Redirecting to login...");
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to register. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to register. Please try again.");
     } finally {
       setIsLoading(false);
     }
