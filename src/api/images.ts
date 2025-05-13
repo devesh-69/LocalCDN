@@ -1,3 +1,4 @@
+
 import { ImageStats } from '@/types/mongodb';
 
 export interface ImageResponse {
@@ -13,5 +14,9 @@ export interface ImageItem {
   createdAt: string;
 }
 
-// This is now just a type definition file for the image data structure
-// The actual functionality has been moved to mockData.ts for browser compatibility
+// Mock function to fetch images - this simulates an API call
+export const fetchImages = async (filter: string = 'all'): Promise<ImageResponse> => {
+  // Import the mock data dynamically to avoid SSR issues
+  const { getMockImages } = await import('@/lib/mockData');
+  return getMockImages(filter);
+};
