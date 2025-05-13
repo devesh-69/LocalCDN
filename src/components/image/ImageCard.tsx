@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Eye, Download, Trash, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ImageData } from '@/api/images';
+import { ImageItem } from '@/api/images';
 
 interface ImageCardProps {
-  image: ImageData;
+  image: ImageItem;
 }
 
 const ImageCard = ({ image }: ImageCardProps) => {

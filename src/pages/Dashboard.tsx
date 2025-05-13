@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ImageGallery from '@/components/image/ImageGallery';
 import ImageUploader from '@/components/image/ImageUploader';
@@ -6,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ImageStats } from '@/types/mongodb';
-import { fetchImages } from '@/api/images';
+import { getMockImages } from '@/lib/mockData';
 
 const Dashboard = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -15,23 +16,20 @@ const Dashboard = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    const getStats = async () => {
-      try {
-        const data = await fetchImages();
-        setStats(data.stats);
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load image statistics",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    getStats();
+    // Use mock data instead of MongoDB connection
+    try {
+      const data = getMockImages('all');
+      setStats(data.stats);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load image statistics",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
   }, [toast]);
   
   return (

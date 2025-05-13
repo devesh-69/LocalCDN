@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ImageCard from './ImageCard';
 import { Button } from '@/components/ui/button';
@@ -6,23 +7,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { ImageStats } from '@/types/mongodb';
-import { fetchImages, ImageData } from '@/api/images';
-
-interface ImageData {
-  id: string;
-  url: string;
-  title: string;
-  isPublic: boolean;
-  createdAt: string;
-}
-
-interface ImageResponse {
-  images: ImageData[];
-  stats: ImageStats;
-}
+import { fetchImages, ImageItem, ImageResponse } from '@/api/images';
 
 const ImageGallery = () => {
-  const [images, setImages] = useState<ImageData[]>([]);
+  const [images, setImages] = useState<ImageItem[]>([]);
   const [stats, setStats] = useState<ImageStats>({ totalImages: 0, publicImages: 0, privateImages: 0 });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -32,9 +20,21 @@ const ImageGallery = () => {
     const getImages = async () => {
       setLoading(true);
       try {
-        const data = await fetchImages(filter);
-        setImages(data.images);
-        setStats(data.stats);
+        // For now, use mock data instead of real MongoDB connection
+        import('@/lib/mockData').then(({ getMockImages }) => {
+          const data = getMockImages(filter);
+          setImages(data.images);
+          setStats(data.stats);
+          setLoading(false);
+        }).catch(error => {
+          console.error('Error loading mock data:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load images. Please try again.",
+            variant: "destructive",
+          });
+          setLoading(false);
+        });
       } catch (error) {
         console.error('Error fetching images:', error);
         toast({
@@ -42,7 +42,6 @@ const ImageGallery = () => {
           description: "Failed to load images. Please try again.",
           variant: "destructive",
         });
-      } finally {
         setLoading(false);
       }
     };
