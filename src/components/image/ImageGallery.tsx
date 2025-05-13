@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ImageCard from './ImageCard';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { ImageStats } from '@/types/mongodb';
+import { fetchImages, ImageData } from '@/api/images';
 
 interface ImageData {
   id: string;
@@ -29,15 +29,10 @@ const ImageGallery = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const getImages = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/images?filter=${filter}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch images');
-        }
-        
-        const data: ImageResponse = await response.json();
+        const data = await fetchImages(filter);
         setImages(data.images);
         setStats(data.stats);
       } catch (error) {
@@ -52,7 +47,7 @@ const ImageGallery = () => {
       }
     };
 
-    fetchImages();
+    getImages();
   }, [filter, toast]);
 
   return (

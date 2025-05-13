@@ -2,13 +2,8 @@
 import { MongoClient } from 'mongodb';
 
 // MongoDB connection string from environment variable
-// Format: mongodb+srv://<username>:<password>@<cluster-url>/<database>
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/localcdn';
+const uri = 'mongodb+srv://lorddgrimm69:XrGlhX9WPwBeZ8nh@localcdn.8om8yfa.mongodb.net/?retryWrites=true&w=majority&appName=localCDN';
 const options = {};
-
-if (!process.env.MONGODB_URI) {
-  console.warn('No MongoDB URI provided. Using local MongoDB instance.');
-}
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ImageGallery from '@/components/image/ImageGallery';
 import ImageUploader from '@/components/image/ImageUploader';
@@ -7,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ImageStats } from '@/types/mongodb';
+import { fetchImages } from '@/api/images';
 
 const Dashboard = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -15,14 +15,9 @@ const Dashboard = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    const fetchStats = async () => {
+    const getStats = async () => {
       try {
-        const response = await fetch('/api/images?stats=true');
-        if (!response.ok) {
-          throw new Error('Failed to fetch stats');
-        }
-        
-        const data = await response.json();
+        const data = await fetchImages();
         setStats(data.stats);
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -36,7 +31,7 @@ const Dashboard = () => {
       }
     };
     
-    fetchStats();
+    getStats();
   }, [toast]);
   
   return (
