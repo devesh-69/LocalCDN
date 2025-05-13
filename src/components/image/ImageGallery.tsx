@@ -6,20 +6,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { ImageStats } from '@/types/mongodb';
 
-// Mock data for the gallery
-const getMockImages = () => {
-  return Array.from({ length: 12 }, (_, i) => ({
-    id: `img-${i}`,
-    url: `https://picsum.photos/seed/${i + 100}/400/400`,
-    title: `Image ${i + 1}`,
-    isPublic: i % 3 === 0,
-    createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString(),
-  }));
-};
+interface ImageData {
+  id: string;
+  url: string;
+  title: string;
+  isPublic: boolean;
+  createdAt: string;
+}
+
+interface ImageResponse {
+  images: ImageData[];
+  stats: ImageStats;
+}
 
 const ImageGallery = () => {
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [stats, setStats] = useState<ImageStats>({ totalImages: 0, publicImages: 0, privateImages: 0 });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const { toast } = useToast();
@@ -28,11 +32,16 @@ const ImageGallery = () => {
     const fetchImages = async () => {
       setLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const mockImages = getMockImages();
-        setImages(mockImages);
+        const response = await fetch(`/api/images?filter=${filter}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch images');
+        }
+        
+        const data: ImageResponse = await response.json();
+        setImages(data.images);
+        setStats(data.stats);
       } catch (error) {
+        console.error('Error fetching images:', error);
         toast({
           title: "Error",
           description: "Failed to load images. Please try again.",
@@ -44,14 +53,7 @@ const ImageGallery = () => {
     };
 
     fetchImages();
-  }, [toast]);
-
-  const filteredImages = images.filter(image => {
-    if (filter === 'all') return true;
-    if (filter === 'public') return image.isPublic;
-    if (filter === 'private') return !image.isPublic;
-    return true;
-  });
+  }, [filter, toast]);
 
   return (
     <div className="space-y-6">
@@ -82,9 +84,9 @@ const ImageGallery = () => {
             </div>
           ))}
         </div>
-      ) : filteredImages.length > 0 ? (
+      ) : images.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredImages.map(image => (
+          {images.map(image => (
             <ImageCard key={image.id} image={image} />
           ))}
         </div>
@@ -101,7 +103,7 @@ const ImageGallery = () => {
         </div>
       )}
 
-      {filteredImages.length > 0 && (
+      {images.length > 0 && (
         <div className="flex justify-center mt-8">
           <Button variant="outline" className="glass-effect">Load More</Button>
         </div>
