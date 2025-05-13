@@ -4,11 +4,11 @@ import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 export interface ImageResponse {
-  images: ImageData[];
+  images: ImageItem[];
   stats: ImageStats;
 }
 
-export interface ImageData {
+export interface ImageItem {
   id: string;
   url: string;
   title: string;
@@ -39,7 +39,7 @@ export async function fetchImages(filter: string = 'all'): Promise<ImageResponse
       .toArray();
       
     // Transform MongoDB documents to the format expected by the frontend
-    const transformedImages: ImageData[] = images.map(img => ({
+    const transformedImages: ImageItem[] = images.map(img => ({
       id: img._id.toString(),
       url: img.url,
       title: img.title,
