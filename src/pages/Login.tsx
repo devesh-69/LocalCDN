@@ -1,39 +1,33 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const Login = () => {
-  const { toast } = useToast();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // In the real implementation, this would connect to your Next.js API route
-      toast({
-        title: "Login Process",
-        description: "This would connect to NextAuth.js in the full implementation",
-      });
-      
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // This is where you would handle response/errors
+      // Simulate successful login
+      toast.success("Login successful! Welcome back.");
+      
+      // Redirect to gallery
+      navigate('/gallery');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to login. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to login. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }

@@ -1,18 +1,37 @@
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [confirmPassword, setConfirmPassword] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      
+      // Create URL for preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,19 +40,27 @@ const Register = () => {
       toast.error("Passwords do not match.");
       return;
     }
+
+    if (!username) {
+      toast.error("Username is required.");
+      return;
+    }
     
     setIsLoading(true);
     
     try {
+      // Here we would normally send form data to API
+      console.log("Registration data:", { email, username, password, avatarFile });
+      
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Simulate successful registration
-      toast.success("Registration successful! Redirecting to login...");
+      toast.success("Registration successful! Redirecting to gallery...");
       
-      // Redirect to login page after a short delay
+      // Redirect to gallery page after a short delay
       setTimeout(() => {
-        navigate('/login');
+        navigate('/gallery');
       }, 2000);
       
     } catch (error) {
@@ -52,6 +79,46 @@ const Register = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            <div className="flex flex-col items-center mb-4">
+              <div 
+                className="relative cursor-pointer mb-2" 
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={avatarPreview || undefined} />
+                  <AvatarFallback className="text-lg">
+                    {username ? username[0].toUpperCase() : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute bottom-0 right-0 bg-primary rounded-full p-1">
+                  <Upload size={12} className="text-white" />
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+              <span className="text-xs text-muted-foreground">
+                Click to upload profile picture
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input 
+                id="username" 
+                type="text" 
+                placeholder="johndoe" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required 
+                className="bg-secondary/50"
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input 
