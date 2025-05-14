@@ -1,5 +1,6 @@
 
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload as UploadIcon, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/layout/Navbar';
+import { uploadImage } from '@/api/images';
 
 const Upload = () => {
+  const navigate = useNavigate();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -21,6 +24,13 @@ const Upload = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Image must be less than 10MB");
+        return;
+      }
+      
       setImageFile(file);
       
       // Create URL for preview
@@ -48,27 +58,15 @@ const Upload = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Log the data (in a real app, this would be sent to an API)
-      console.log("Upload data:", {
-        title,
-        description,
-        isPublic,
-        file: imageFile
-      });
+      // Upload to Supabase
+      await uploadImage(imageFile, title, description, isPublic);
       
       toast.success("Image uploaded successfully!");
       
-      // Reset form
-      setImageFile(null);
-      setImagePreview(null);
-      setTitle('');
-      setDescription('');
-      setIsPublic(true);
-      
+      // Redirect to gallery
+      navigate('/gallery');
     } catch (error) {
+      console.error('Upload error:', error);
       toast.error("Failed to upload image. Please try again.");
     } finally {
       setIsLoading(false);

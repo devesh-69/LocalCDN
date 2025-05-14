@@ -1,18 +1,30 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { Google } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, signInWithGoogle, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  
+  // Redirect if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/gallery';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,11 +33,18 @@ const Login = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        navigate('/gallery');
+        const from = location.state?.from?.pathname || '/gallery';
+        navigate(from, { replace: true });
       }
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    await signInWithGoogle();
+    setIsGoogleLoading(false);
   };
   
   return (
@@ -37,6 +56,29 @@ const Login = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                "Connecting..."
+              ) : (
+                <>
+                  <Google size={16} />
+                  Sign in with Google
+                </>
+              )}
+            </Button>
+            
+            <div className="flex items-center gap-2 my-4">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">OR</span>
+              <Separator className="flex-1" />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input 

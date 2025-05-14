@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Upload, LogOut, Search, Home, GalleryHorizontal } from 'lucide-react';
+import { Upload, LogOut, Search, Home, GalleryHorizontal, LayoutDashboard } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,8 +11,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -41,14 +41,18 @@ const Navbar = () => {
               <Home size={16} className="mr-2 inline-block" />
               Home
             </NavLink>
-            <NavLink to="/gallery">
-              <GalleryHorizontal size={16} className="mr-2 inline-block" />
-              Gallery
-            </NavLink>
-            <NavLink to="/upload">
-              <Upload size={16} className="mr-2 inline-block" />
-              Upload
-            </NavLink>
+            {isAuthenticated && (
+              <>
+                <NavLink to="/dashboard">
+                  <LayoutDashboard size={16} className="mr-2 inline-block" />
+                  Dashboard
+                </NavLink>
+                <NavLink to="/gallery">
+                  <GalleryHorizontal size={16} className="mr-2 inline-block" />
+                  Gallery
+                </NavLink>
+              </>
+            )}
           </nav>
         </div>
 

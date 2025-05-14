@@ -1,18 +1,20 @@
 
-import React, { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload } from 'lucide-react';
+import { Upload, Google } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const location = useLocation();
+  const { register, signInWithGoogle, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,11 +22,27 @@ const Register = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Redirect if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/gallery';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
   
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Avatar image must be less than 2MB");
+        return;
+      }
+      
       setAvatarFile(file);
       
       // Create URL for preview
@@ -54,11 +72,18 @@ const Register = () => {
     try {
       const success = await register(email, username, password, avatarFile || undefined);
       if (success) {
-        navigate('/gallery');
+        const from = location.state?.from?.pathname || '/gallery';
+        navigate(from, { replace: true });
       }
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    await signInWithGoogle();
+    setIsGoogleLoading(false);
   };
   
   return (
@@ -70,6 +95,29 @@ const Register = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                "Connecting..."
+              ) : (
+                <>
+                  <Google size={16} />
+                  Sign up with Google
+                </>
+              )}
+            </Button>
+            
+            <div className="flex items-center gap-2 my-4">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">OR</span>
+              <Separator className="flex-1" />
+            </div>
+          
             <div className="flex flex-col items-center mb-4">
               <div 
                 className="relative cursor-pointer mb-2" 
@@ -93,7 +141,7 @@ const Register = () => {
                 className="hidden"
               />
               <span className="text-xs text-muted-foreground">
-                Click to upload profile picture
+                Click to upload profile picture (optional)
               </span>
             </div>
 
