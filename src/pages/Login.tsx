@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,16 +19,10 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate successful login
-      toast.success("Login successful! Welcome back.");
-      
-      // Redirect to gallery
-      navigate('/gallery');
-    } catch (error) {
-      toast.error("Failed to login. Please check your credentials.");
+      const success = await login(email, password);
+      if (success) {
+        navigate('/gallery');
+      }
     } finally {
       setIsLoading(false);
     }

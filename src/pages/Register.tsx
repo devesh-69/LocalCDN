@@ -5,11 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Upload } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -49,22 +52,10 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // Here we would normally send form data to API
-      console.log("Registration data:", { email, username, password, avatarFile });
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simulate successful registration
-      toast.success("Registration successful! Redirecting to gallery...");
-      
-      // Redirect to gallery page after a short delay
-      setTimeout(() => {
+      const success = await register(email, username, password, avatarFile || undefined);
+      if (success) {
         navigate('/gallery');
-      }, 2000);
-      
-    } catch (error) {
-      toast.error("Failed to register. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
