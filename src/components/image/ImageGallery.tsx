@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import ImageCard from './ImageCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Upload } from 'lucide-react';
 import { ImageStats } from '@/types/mongodb';
 import { fetchImages, ImageItem } from '@/api/images';
+import { Link } from 'react-router-dom';
 
 const ImageGallery = () => {
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -15,27 +17,32 @@ const ImageGallery = () => {
   const [filter, setFilter] = useState('all');
   const { toast } = useToast();
 
-  useEffect(() => {
-    const getImages = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchImages(filter);
-        setImages(data.images);
-        setStats(data.stats);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching images:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load images. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-      }
-    };
+  const fetchImagesData = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchImages(filter);
+      setImages(data.images);
+      setStats(data.stats);
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load images. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    getImages();
-  }, [filter, toast]);
+  useEffect(() => {
+    fetchImagesData();
+  }, [filter]);
+
+  const handleImageDelete = () => {
+    // Refetch images after deletion
+    fetchImagesData();
+  };
 
   return (
     <div className="space-y-6">
@@ -69,7 +76,11 @@ const ImageGallery = () => {
       ) : images.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {images.map(image => (
-            <ImageCard key={image.id} image={image} />
+            <ImageCard 
+              key={image.id} 
+              image={image} 
+              onDelete={handleImageDelete}
+            />
           ))}
         </div>
       ) : (
@@ -81,7 +92,11 @@ const ImageGallery = () => {
               ? `You don't have any ${filter} images yet`
               : "Your gallery is empty. Upload some images to get started!"}
           </p>
-          <Button className="bg-primary hover:bg-primary/80">Upload Images</Button>
+          <Link to="/upload">
+            <Button className="bg-primary hover:bg-primary/80">
+              <Upload className="mr-2 h-4 w-4" /> Upload Images
+            </Button>
+          </Link>
         </div>
       )}
 

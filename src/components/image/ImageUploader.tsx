@@ -5,14 +5,23 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { uploadImage } from '@/api/images';
+import { useNavigate } from 'react-router-dom';
 
-const ImageUploader = () => {
+interface ImageUploaderProps {
+  title: string;
+  description: string;
+  isPublic: boolean;
+}
+
+const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -67,7 +76,7 @@ const ImageUploader = () => {
     setUploading(true);
     setUploadProgress(0);
 
-    // Simulate upload progress
+    // Simulate progress for better UX
     const interval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 95) {
@@ -79,13 +88,17 @@ const ImageUploader = () => {
     }, 200);
 
     try {
-      // In the real implementation, this would connect to your Next.js API route
-      // const formData = new FormData();
-      // files.forEach(file => formData.append('files', file));
+      // Upload each file to Supabase
+      const promises = files.map(async (file) => {
+        try {
+          return await uploadImage(file, title || 'Untitled', description, isPublic);
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          throw error;
+        }
+      });
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await Promise.all(promises);
       setUploadProgress(100);
       
       toast({
@@ -93,19 +106,23 @@ const ImageUploader = () => {
         description: `${files.length} ${files.length === 1 ? 'image' : 'images'} uploaded successfully`,
       });
       
-      // Clear files after successful upload
+      // Clear files after successful upload and navigate to gallery
       setTimeout(() => {
         setFiles([]);
         setUploading(false);
         setUploadProgress(0);
+        navigate('/gallery');
       }, 500);
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
-        description: "There was an error uploading your images",
+        description: "There was an error uploading your images. Please try again.",
         variant: "destructive",
       });
       setUploading(false);
+    } finally {
+      clearInterval(interval);
     }
   };
 

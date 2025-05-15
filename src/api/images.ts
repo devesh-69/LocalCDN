@@ -94,15 +94,16 @@ export const uploadImage = async (
   // Generate a unique file name
   const fileExt = file.name.split('.').pop();
   const fileName = `${user.id}-${Math.random().toString(36).slice(2)}-${Date.now()}.${fileExt}`;
-  const filePath = `images/${fileName}`;
+  const filePath = `${fileName}`;
   
   // Upload file to storage
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError, data: uploadData } = await supabase.storage
     .from('images')
     .upload(filePath, file);
     
   if (uploadError) {
-    throw uploadError;
+    console.error('Storage upload error:', uploadError);
+    throw new Error(`Storage upload failed: ${uploadError.message}`);
   }
   
   // Get public URL for the uploaded image
@@ -127,10 +128,15 @@ export const uploadImage = async (
     .select();
     
   if (error) {
-    throw error;
+    console.error('Database insert error:', error);
+    // Try to delete the uploaded file if database insert fails
+    await supabase.storage.from('images').remove([filePath]);
+    throw new Error(`Database record creation failed: ${error.message}`);
   }
   
   if (!data || data.length === 0) {
+    // Try to delete the uploaded file if database insert fails
+    await supabase.storage.from('images').remove([filePath]);
     throw new Error('Failed to create image record');
   }
   
@@ -148,7 +154,7 @@ export const uploadImage = async (
 
 // Delete image from Supabase
 export const deleteImage = async (id: string): Promise<void> => {
-  // First get the image details to get the storage path
+  // First get the image details to get the URL
   const { data, error } = await supabase
     .from('images')
     .select('url')
@@ -156,25 +162,26 @@ export const deleteImage = async (id: string): Promise<void> => {
     .single();
     
   if (error) {
+    console.error('Error fetching image before delete:', error);
     throw error;
   }
   
   // Extract file path from URL
   const url = new URL(data.url);
-  const pathParts = url.pathname.split('/');
-  const filePath = pathParts[pathParts.length - 2] + '/' + pathParts[pathParts.length - 1];
+  const pathname = url.pathname;
+  // The path will be something like /storage/v1/object/public/images/filename
+  // We need to extract just the filename
+  const parts = pathname.split('/');
+  const filename = parts[parts.length - 1];
   
   // Delete from storage
-  try {
-    const { error: storageError } = await supabase.storage
-      .from('images')
-      .remove([filePath]);
-      
-    if (storageError) {
-      console.error('Failed to delete image from storage:', storageError);
-    }
-  } catch (e) {
-    console.error('Error deleting from storage:', e);
+  const { error: storageError } = await supabase.storage
+    .from('images')
+    .remove([filename]);
+    
+  if (storageError) {
+    console.error('Failed to delete image from storage:', storageError);
+    // Continue to delete the database record even if storage deletion fails
   }
   
   // Delete database record
