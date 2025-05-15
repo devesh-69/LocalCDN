@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
-import { Google } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -67,7 +66,13 @@ const Login = () => {
                 "Connecting..."
               ) : (
                 <>
-                  <Google size={16} />
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    <path d="M2 12h10" />
+                    <path d="M12 2v10" />
+                    <path d="M12 12 4.93 19.07" />
+                    <path d="M12 12 19.07 4.93" />
+                  </svg>
                   Sign in with Google
                 </>
               )}

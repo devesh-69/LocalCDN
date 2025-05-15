@@ -9,42 +9,48 @@ const mockImages: ImageItem[] = [
     url: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131',
     title: 'Cute Cat',
     isPublic: true,
-    createdAt: new Date(2023, 5, 15).toISOString()
+    createdAt: new Date(2023, 5, 15).toISOString(),
+    userId: 'user-1' // Added userId
   },
   {
     id: '2',
     url: 'https://images.unsplash.com/photo-1560807707-8cc77767d783',
     title: 'Mountain Landscape',
     isPublic: true,
-    createdAt: new Date(2023, 4, 10).toISOString()
+    createdAt: new Date(2023, 4, 10).toISOString(),
+    userId: 'user-1' // Added userId
   },
   {
     id: '3',
     url: 'https://images.unsplash.com/photo-1546587348-d12660c30c50',
     title: 'Private Document',
     isPublic: false,
-    createdAt: new Date(2023, 3, 5).toISOString()
+    createdAt: new Date(2023, 3, 5).toISOString(),
+    userId: 'user-1' // Added userId
   },
   {
     id: '4',
     url: 'https://images.unsplash.com/photo-1534239143101-1b1c627395c5',
     title: 'Secret Photo',
     isPublic: false,
-    createdAt: new Date(2023, 2, 20).toISOString()
+    createdAt: new Date(2023, 2, 20).toISOString(),
+    userId: 'user-1' // Added userId
   },
   {
     id: '5',
     url: 'https://images.unsplash.com/photo-1507146426996-ef05306b995a',
     title: 'Sunset View',
     isPublic: true,
-    createdAt: new Date(2023, 1, 12).toISOString()
+    createdAt: new Date(2023, 1, 12).toISOString(),
+    userId: 'user-1' // Added userId
   },
   {
     id: '6',
     url: 'https://images.unsplash.com/photo-1510771463146-e89e6e86560e',
     title: 'Dog Portrait',
     isPublic: true,
-    createdAt: new Date(2023, 0, 5).toISOString()
+    createdAt: new Date(2023, 0, 5).toISOString(),
+    userId: 'user-1' // Added userId
   }
 ];
 
