@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Eye, Download, Trash, Edit } from 'lucide-react';
+import { Eye, Download, Trash, Share, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageItem } from '@/api/images';
 import { useToast } from '@/hooks/use-toast';
 import { deleteImage } from '@/api/images';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface ImageCardProps {
   image: ImageItem;
@@ -14,9 +15,10 @@ interface ImageCardProps {
 }
 
 const ImageCard = ({ image, onDelete }: ImageCardProps) => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [showFullImage, setShowFullImage] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleViewImage = () => {
     setShowFullImage(true);
@@ -30,10 +32,29 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
     link.click();
     document.body.removeChild(link);
     
-    toast({
-      title: "Download Started",
-      description: "Your image download has started."
-    });
+    toast.success("Download started");
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: image.title,
+          text: image.description || 'Check out this image!',
+          url: image.url,
+        });
+      } else {
+        // Fallback to clipboard copy
+        await navigator.clipboard.writeText(image.url);
+        toast.success("Image URL copied to clipboard");
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const confirmDelete = () => {
+    setShowDeleteConfirm(true);
   };
 
   const handleDelete = async () => {
@@ -43,19 +64,21 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
       setIsDeleting(true);
       await deleteImage(image.id);
       
-      toast({
+      uiToast({
         title: "Image Deleted",
         description: "The image has been successfully deleted."
       });
       
+      setShowDeleteConfirm(false);
+      
       if (onDelete) {
         onDelete();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting image:', error);
-      toast({
+      uiToast({
         title: "Error",
-        description: "Failed to delete the image. Please try again.",
+        description: error.message || "Failed to delete the image. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -78,7 +101,7 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <div className="absolute bottom-0 w-full p-3">
             <div className="flex justify-between items-end">
-              <div>
+              <div className="max-w-[70%]">
                 <h3 className="text-white font-medium truncate">{image.title || 'Untitled'}</h3>
                 <p className="text-white/70 text-xs">
                   {new Date(image.createdAt).toLocaleDateString()}
@@ -93,6 +116,7 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
                     e.stopPropagation();
                     handleViewImage();
                   }}
+                  title="View"
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -104,21 +128,39 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
                     e.stopPropagation();
                     handleDownload();
                   }}
+                  title="Download"
                 >
                   <Download className="h-4 w-4" />
                 </Button>
                 <Button 
                   size="icon" 
                   variant="ghost" 
-                  className="h-8 w-8 text-white/80 hover:text-white hover:text-destructive"
+                  className="h-8 w-8 text-white/80 hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete();
+                    handleShare();
                   }}
-                  disabled={isDeleting}
+                  title="Share"
                 >
-                  <Trash className="h-4 w-4" />
+                  <Share className="h-4 w-4" />
                 </Button>
+                
+                {/* Only show delete button if user is the owner */}
+                {image.isOwner && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 text-white/80 hover:text-white hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      confirmDelete();
+                    }}
+                    disabled={isDeleting}
+                    title="Delete"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -148,14 +190,42 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
               className="max-h-[70vh] max-w-full object-contain"
             />
           </div>
-          <div className="flex justify-end gap-2 mt-4">
+          <DialogFooter className="flex justify-end gap-2 mt-4 sm:justify-end">
             <Button variant="outline" onClick={() => setShowFullImage(false)}>
               Close
+            </Button>
+            <Button onClick={handleShare}>
+              <Share className="mr-2 h-4 w-4" /> Share
             </Button>
             <Button onClick={handleDownload}>
               <Download className="mr-2 h-4 w-4" /> Download
             </Button>
-          </div>
+            {image.isOwner && (
+              <Button variant="destructive" onClick={confirmDelete}>
+                <Trash className="mr-2 h-4 w-4" /> Delete
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="glass-modal">
+          <DialogHeader>
+            <DialogTitle>Delete Image</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this image? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2 mt-4 sm:justify-end">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

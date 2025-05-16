@@ -5,29 +5,33 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Upload } from 'lucide-react';
+import { Eye, EyeOff, Upload, UserIcon } from 'lucide-react';
 import { ImageStats } from '@/types/mongodb';
 import { fetchImages, ImageItem } from '@/api/images';
 import { Link } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ImageGallery = () => {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [stats, setStats] = useState<ImageStats>({ totalImages: 0, publicImages: 0, privateImages: 0 });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchImagesData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await fetchImages(filter);
       setImages(data.images);
       setStats(data.stats);
-    } catch (error) {
-      console.error('Error fetching images:', error);
+    } catch (err: any) {
+      console.error('Error fetching images:', err);
+      setError(err.message || "Failed to load images");
       toast({
         title: "Error",
-        description: "Failed to load images. Please try again.",
+        description: err.message || "Failed to load images. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -44,24 +48,37 @@ const ImageGallery = () => {
     fetchImagesData();
   };
 
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Your Images</h2>
-        <Tabs defaultValue="all" className="w-auto">
+        <Tabs defaultValue={filter} value={filter} onValueChange={handleFilterChange} className="w-auto">
           <TabsList className="glass-effect">
-            <TabsTrigger value="all" onClick={() => setFilter('all')}>
+            <TabsTrigger value="all">
               All
             </TabsTrigger>
-            <TabsTrigger value="public" onClick={() => setFilter('public')}>
+            <TabsTrigger value="public">
               <Eye className="h-4 w-4 mr-1" /> Public
             </TabsTrigger>
-            <TabsTrigger value="private" onClick={() => setFilter('private')}>
+            <TabsTrigger value="private">
               <EyeOff className="h-4 w-4 mr-1" /> Private
+            </TabsTrigger>
+            <TabsTrigger value="owned">
+              <UserIcon className="h-4 w-4 mr-1" /> Mine
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
+
+      {error && (
+        <Alert variant="destructive" className="animate-scale-in">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -88,9 +105,11 @@ const ImageGallery = () => {
           <div className="text-6xl mb-4">🖼️</div>
           <h3 className="text-xl font-medium mb-2">No images found</h3>
           <p className="text-muted-foreground mb-4">
-            {filter !== 'all'
-              ? `You don't have any ${filter} images yet`
-              : "Your gallery is empty. Upload some images to get started!"}
+            {filter === 'all'
+              ? "Your gallery is empty. Upload some images to get started!"
+              : filter === 'owned'
+              ? "You haven't uploaded any images yet"
+              : `You don't have any ${filter} images yet`}
           </p>
           <Link to="/upload">
             <Button className="bg-primary hover:bg-primary/80">

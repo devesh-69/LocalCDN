@@ -1,12 +1,13 @@
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { uploadImage } from '@/api/images';
+import { uploadImage, validateFile, MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '@/api/images';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ImageUploaderProps {
   title: string;
@@ -19,14 +20,48 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [fileErrors, setFileErrors] = useState<{[key: string]: string}>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const validateAndAddFiles = (newFiles: File[]) => {
+    const errors: {[key: string]: string} = {};
+    const validFiles: File[] = [];
+    
+    newFiles.forEach(file => {
+      const result = validateFile(file);
+      if (!result.valid && result.error) {
+        errors[file.name] = result.error;
+      } else {
+        validFiles.push(file);
+      }
+    });
+    
+    if (Object.keys(errors).length > 0) {
+      setFileErrors(prev => ({ ...prev, ...errors }));
+      
+      // Show toast for file errors
+      const errorMessages = Object.values(errors);
+      if (errorMessages.length > 0) {
+        toast({
+          title: "File validation failed",
+          description: errorMessages[0],
+          variant: "destructive",
+        });
+      }
+    }
+    
+    if (validFiles.length > 0) {
+      setFiles(prev => [...prev, ...validFiles]);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFiles = Array.from(e.target.files);
-      setFiles(prev => [...prev, ...selectedFiles]);
+      validateAndAddFiles(selectedFiles);
     }
   };
 
@@ -48,7 +83,7 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
       const imageFiles = droppedFiles.filter(file => file.type.startsWith('image/'));
       
       if (imageFiles.length > 0) {
-        setFiles(prev => [...prev, ...imageFiles]);
+        validateAndAddFiles(imageFiles);
       } else {
         toast({
           title: "Invalid files",
@@ -61,6 +96,13 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+    // Clear errors for this file if any
+    const fileToRemove = files[index];
+    if (fileToRemove && fileErrors[fileToRemove.name]) {
+      const newErrors = { ...fileErrors };
+      delete newErrors[fileToRemove.name];
+      setFileErrors(newErrors);
+    }
   };
 
   const handleUpload = async () => {
@@ -75,6 +117,7 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
 
     setUploading(true);
     setUploadProgress(0);
+    setUploadError(null);
 
     // Simulate progress for better UX
     const interval = setInterval(() => {
@@ -92,9 +135,9 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
       const promises = files.map(async (file) => {
         try {
           return await uploadImage(file, title || 'Untitled', description, isPublic);
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error uploading image:', error);
-          throw error;
+          throw new Error(`${file.name}: ${error.message}`);
         }
       });
       
@@ -113,17 +156,25 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
         setUploadProgress(0);
         navigate('/gallery');
       }, 500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
+      setUploadError(error.message || 'There was an error uploading your images');
       toast({
         title: "Upload Failed",
-        description: "There was an error uploading your images. Please try again.",
+        description: error.message || "There was an error uploading your images. Please try again.",
         variant: "destructive",
       });
       setUploading(false);
     } finally {
       clearInterval(interval);
     }
+  };
+
+  // Format file size for display
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
   return (
@@ -143,7 +194,7 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
           type="file"
           ref={fileInputRef}
           multiple
-          accept="image/*"
+          accept={ALLOWED_FILE_TYPES.join(',')}
           onChange={handleFileChange}
           className="hidden"
         />
@@ -154,10 +205,17 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
             or <span className="text-primary">browse files</span>
           </p>
           <p className="text-muted-foreground text-xs mt-2">
-            Supports JPG, PNG and WebP (max 10MB each)
+            Supports {ALLOWED_FILE_TYPES.map(t => t.split('/')[1]).join(', ')} (max {MAX_FILE_SIZE / 1024 / 1024}MB each)
           </p>
         </div>
       </div>
+
+      {uploadError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{uploadError}</AlertDescription>
+        </Alert>
+      )}
 
       {files.length > 0 && (
         <div className="space-y-4">
@@ -165,18 +223,26 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
             <h3 className="font-medium mb-3">Selected Files ({files.length})</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
               {files.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-secondary/30 rounded">
+                <div key={index} className={cn(
+                  "flex items-center justify-between p-2 rounded",
+                  fileErrors[file.name] ? "bg-destructive/20" : "bg-secondary/30"
+                )}>
                   <div className="flex items-center gap-2">
                     <div className="bg-secondary p-2 rounded">
                       <ImageIcon className="h-4 w-4" />
                     </div>
-                    <div className="truncate" style={{ maxWidth: '200px' }}>
+                    <div className="truncate max-w-[200px]">
                       {file.name}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                      {formatFileSize(file.size)}
                     </span>
                   </div>
+                  {fileErrors[file.name] && (
+                    <span className="text-xs text-destructive mx-2">
+                      {fileErrors[file.name]}
+                    </span>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -207,7 +273,10 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
             <Button
               variant="outline"
               className="glass-effect"
-              onClick={() => setFiles([])}
+              onClick={() => {
+                setFiles([]);
+                setFileErrors({});
+              }}
               disabled={uploading}
             >
               Clear All
@@ -215,7 +284,7 @@ const ImageUploader = ({ title, description, isPublic }: ImageUploaderProps) => 
             <Button
               className="bg-primary hover:bg-primary/80"
               onClick={handleUpload}
-              disabled={uploading}
+              disabled={uploading || files.length === 0 || Object.keys(fileErrors).length > 0}
             >
               {uploading ? "Uploading..." : "Upload Images"}
             </Button>

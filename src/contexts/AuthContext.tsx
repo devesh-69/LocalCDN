@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 // Define the user interface
@@ -15,12 +15,14 @@ interface UserData {
 // Define the authentication context interface
 interface AuthContextType {
   user: UserData | null;
+  session: Session | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signInWithGoogle: () => Promise<boolean>;
   register: (email: string, username: string, password: string, avatar?: File) => Promise<boolean>;
   logout: () => Promise<void>;
   isLoading: boolean;
+  refreshSession: () => Promise<void>;
 }
 
 // Create the context
@@ -29,6 +31,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 // Create a provider component
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<UserData | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,40 +58,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   };
 
-  // Check if the user is already logged in on mount
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      setIsLoading(true);
+  // Refresh session function
+  const refreshSession = async () => {
+    setIsLoading(true);
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
-      try {
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          const userData = await formatUserData(session.user);
-          setUser(userData);
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.error('Authentication error:', error);
-      } finally {
-        setIsLoading(false);
+      if (error) {
+        throw error;
       }
-    };
-
-    getCurrentUser();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        const userData = await formatUserData(session.user);
+      
+      setSession(currentSession);
+      
+      if (currentSession?.user) {
+        const userData = await formatUserData(currentSession.user);
         setUser(userData);
         setIsAuthenticated(true);
-      } else if (event === 'SIGNED_OUT') {
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    } catch (error) {
+      console.error('Session refresh error:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check if the user is already logged in on mount
+  useEffect(() => {
+    // Set up auth state listener FIRST - critical for preventing deadlocks
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('Auth state changed:', event);
+      
+      // Use synchronous updates for session state
+      setSession(currentSession);
+      
+      // If we need to fetch additional data, defer it with setTimeout
+      if (currentSession?.user) {
+        setIsAuthenticated(true);
+        
+        // Defer profile data fetching to prevent potential deadlocks
+        setTimeout(async () => {
+          const userData = await formatUserData(currentSession.user);
+          setUser(userData);
+        }, 0);
+      } else {
         setUser(null);
         setIsAuthenticated(false);
       }
     });
+
+    // THEN check for existing session
+    refreshSession();
 
     return () => {
       subscription.unsubscribe();
@@ -110,14 +134,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return false;
       }
       
+      setSession(data.session);
       const userData = await formatUserData(data.user);
       setUser(userData);
       setIsAuthenticated(true);
       toast.success('Login successful!');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('Failed to login');
+      toast.error(error.message || 'Failed to login');
       return false;
     } finally {
       setIsLoading(false);
@@ -141,9 +166,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // The OAuth flow will redirect and handle auth state through the onAuthStateChange listener
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google sign-in error:', error);
-      toast.error('Failed to sign in with Google');
+      toast.error(error.message || 'Failed to sign in with Google');
       return false;
     }
   };
@@ -161,7 +186,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Register the user
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/gallery`
+        }
       });
       
       if (error) {
@@ -213,21 +241,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Profile creation error:', profileError);
       }
       
-      // Set user state
-      const userData = {
-        id: data.user.id,
-        username,
-        email,
-        avatarUrl
-      };
+      // Set user state if we have a session
+      if (data.session) {
+        setSession(data.session);
+        const userData = {
+          id: data.user.id,
+          username,
+          email,
+          avatarUrl
+        };
+        
+        setUser(userData);
+        setIsAuthenticated(true);
+      }
       
-      setUser(userData);
-      setIsAuthenticated(true);
       toast.success('Account created successfully!');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error('Failed to register');
+      toast.error(error.message || 'Failed to register');
       return false;
     } finally {
       setIsLoading(false);
@@ -239,16 +271,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await supabase.auth.signOut();
       setUser(null);
+      setSession(null);
       setIsAuthenticated(false);
       toast.success('Logged out successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Logout error:', error);
-      toast.error('Failed to logout');
+      toast.error(error.message || 'Failed to logout');
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, signInWithGoogle, register, logout, isLoading }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        session,
+        isAuthenticated, 
+        login, 
+        signInWithGoogle, 
+        register, 
+        logout, 
+        isLoading,
+        refreshSession
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
