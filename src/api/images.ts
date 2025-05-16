@@ -58,6 +58,9 @@ export const fetchImages = async (filter: string = 'all'): Promise<ImageResponse
       query = query.eq('is_public', true);
     } else if (filter === 'private') {
       query = query.eq('is_public', false).eq('user_id', user.id);
+    } else if (filter === 'owned') {
+      // For "owned", we want only the user's images
+      query = query.eq('user_id', user.id);
     } else if (filter === 'all') {
       // For "all", we want all public images + user's private images
       query = query.or(`is_public.eq.true,user_id.eq.${user.id}`);
