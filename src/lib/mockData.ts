@@ -10,7 +10,8 @@ const mockImages: ImageItem[] = [
     title: 'Cute Cat',
     isPublic: true,
     createdAt: new Date(2023, 5, 15).toISOString(),
-    userId: 'user-1' // Added userId
+    userId: 'user-1',
+    isOwner: true // Added the required isOwner property
   },
   {
     id: '2',
@@ -18,7 +19,8 @@ const mockImages: ImageItem[] = [
     title: 'Mountain Landscape',
     isPublic: true,
     createdAt: new Date(2023, 4, 10).toISOString(),
-    userId: 'user-1' // Added userId
+    userId: 'user-1',
+    isOwner: true // Added the required isOwner property
   },
   {
     id: '3',
@@ -26,7 +28,8 @@ const mockImages: ImageItem[] = [
     title: 'Private Document',
     isPublic: false,
     createdAt: new Date(2023, 3, 5).toISOString(),
-    userId: 'user-1' // Added userId
+    userId: 'user-1',
+    isOwner: true // Added the required isOwner property
   },
   {
     id: '4',
@@ -34,7 +37,8 @@ const mockImages: ImageItem[] = [
     title: 'Secret Photo',
     isPublic: false,
     createdAt: new Date(2023, 2, 20).toISOString(),
-    userId: 'user-1' // Added userId
+    userId: 'user-1',
+    isOwner: true // Added the required isOwner property
   },
   {
     id: '5',
@@ -42,7 +46,8 @@ const mockImages: ImageItem[] = [
     title: 'Sunset View',
     isPublic: true,
     createdAt: new Date(2023, 1, 12).toISOString(),
-    userId: 'user-1' // Added userId
+    userId: 'user-1',
+    isOwner: true // Added the required isOwner property
   },
   {
     id: '6',
@@ -50,7 +55,8 @@ const mockImages: ImageItem[] = [
     title: 'Dog Portrait',
     isPublic: true,
     createdAt: new Date(2023, 0, 5).toISOString(),
-    userId: 'user-1' // Added userId
+    userId: 'user-1',
+    isOwner: true // Added the required isOwner property
   }
 ];
 
