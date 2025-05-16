@@ -19,37 +19,71 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
   const [showFullImage, setShowFullImage] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
 
   const handleViewImage = () => {
     setShowFullImage(true);
   };
 
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = image.url;
-    link.download = image.title || 'image';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success("Download started");
+    try {
+      // Create an anchor element and set its attributes for downloading
+      const link = document.createElement('a');
+      
+      // Set download attribute to force download rather than navigation
+      link.href = image.url;
+      
+      // Get filename from URL or use title as fallback
+      const urlParts = image.url.split('/');
+      const filename = urlParts[urlParts.length - 1] || `${image.title || 'image'}.jpg`;
+      
+      link.download = filename;
+      
+      // Append to document, trigger click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Download started");
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error("Failed to download image");
+    }
   };
 
   const handleShare = async () => {
     try {
+      setIsCopying(true);
+      
+      // Prepare URL - ensure it's clean and properly formatted
+      let shareUrl = image.url;
+      
+      // Handle HTTP vs HTTPS if needed
+      if (!shareUrl.startsWith('http')) {
+        shareUrl = `https://${shareUrl}`;
+      }
+      
+      // Trim trailing slashes
+      shareUrl = shareUrl.replace(/\/+$/, '');
+      
       if (navigator.share) {
+        // Use native share if available
         await navigator.share({
-          title: image.title,
-          text: image.description || 'Check out this image!',
-          url: image.url,
+          title: image.title || 'Shared Image',
+          text: image.description || 'Check out this image from localCDN!',
+          url: shareUrl,
         });
+        toast.success("Shared successfully!");
       } else {
         // Fallback to clipboard copy
-        await navigator.clipboard.writeText(image.url);
+        await navigator.clipboard.writeText(shareUrl);
         toast.success("Image URL copied to clipboard");
       }
     } catch (error) {
       console.error('Error sharing:', error);
+      toast.error("Failed to share image");
+    } finally {
+      setIsCopying(false);
     }
   };
 
@@ -141,6 +175,7 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
                     handleShare();
                   }}
                   title="Share"
+                  disabled={isCopying}
                 >
                   <Share className="h-4 w-4" />
                 </Button>
@@ -194,8 +229,12 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
             <Button variant="outline" onClick={() => setShowFullImage(false)}>
               Close
             </Button>
-            <Button onClick={handleShare}>
-              <Share className="mr-2 h-4 w-4" /> Share
+            <Button 
+              onClick={handleShare} 
+              disabled={isCopying}
+            >
+              <Share className="mr-2 h-4 w-4" /> 
+              {isCopying ? 'Copying...' : 'Share'}
             </Button>
             <Button onClick={handleDownload}>
               <Download className="mr-2 h-4 w-4" /> Download

@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
       if (error) {
+        console.error('Session refresh error:', error);
         throw error;
       }
       
@@ -96,7 +97,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Use synchronous updates for session state
       setSession(currentSession);
       
-      // If we need to fetch additional data, defer it with setTimeout
       if (currentSession?.user) {
         setIsAuthenticated(true);
         
@@ -119,18 +119,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Login function
+  // Login function with improved error handling
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
+      // First check if the email exists
+      const { data: userExists, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking if email exists:', checkError);
+      }
+      
+      // If email doesn't exist, provide specific feedback
+      if (!userExists) {
+        toast.error("Email not found. Please check your email or register for an account.");
+        return false;
+      }
+      
+      // Try to sign in
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
-        toast.error(error.message);
+        // Provide specific error message based on the error type
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error("Incorrect password. Please try again.");
+        } else {
+          toast.error(error.message);
+        }
         return false;
       }
       
@@ -173,7 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Register function
+  // Register function with improved error handling
   const register = async (
     email: string, 
     username: string, 
@@ -183,6 +206,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     
     try {
+      // Check if email already exists
+      const { data: emailExists, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (emailExists) {
+        toast.error('This email is already registered. Please log in instead.');
+        return false;
+      }
+      
       // Register the user
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -193,7 +228,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       if (error) {
-        toast.error(error.message);
+        if (error.message.includes('password')) {
+          toast.error('Password must be at least 6 characters long.');
+        } else {
+          toast.error(error.message);
+        }
         return false;
       }
 
@@ -239,6 +278,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
       if (profileError) {
         console.error('Profile creation error:', profileError);
+        if (profileError.message.includes('duplicate')) {
+          toast.error('Username is already taken. Please choose a different one.');
+          return false;
+        }
       }
       
       // Set user state if we have a session
