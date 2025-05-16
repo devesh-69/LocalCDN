@@ -3,7 +3,7 @@ import React from 'react';
 import { Eye, Download, Trash, Share, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageItem } from '@/api/images';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { deleteImage } from '@/api/images';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useState } from 'react';
