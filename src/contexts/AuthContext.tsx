@@ -46,8 +46,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .eq('id', supabaseUser.id)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('Error fetching user profile:', error);
+      // Return basic user data even if profile fetch fails
+      return {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        username: supabaseUser.email?.split('@')[0] || 'User',
+        avatarUrl: null
+      };
     }
 
     return {
@@ -124,23 +131,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // First check if the email exists
-      const { data: userExists, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-      
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking if email exists:', checkError);
-      }
-      
-      // If email doesn't exist, provide specific feedback
-      if (!userExists) {
-        toast.error("Email not found. Please check your email or register for an account.");
-        return false;
-      }
-      
       // Try to sign in
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -148,11 +138,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       if (error) {
-        // Provide specific error message based on the error type
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error("Incorrect password. Please try again.");
+        // Safely check error message to avoid "undefined" issues
+        const errorMessage = error.message || "Login failed";
+        
+        if (errorMessage.includes && errorMessage.includes('Invalid login credentials')) {
+          toast.error("Incorrect email or password. Please try again.");
         } else {
-          toast.error(error.message);
+          toast.error(errorMessage);
         }
         return false;
       }
@@ -165,7 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return true;
     } catch (error: any) {
       console.error('Login error:', error);
-      toast.error(error.message || 'Failed to login');
+      toast.error(error?.message || 'Failed to login');
       return false;
     } finally {
       setIsLoading(false);
@@ -183,7 +175,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message || 'Failed to sign in with Google');
         return false;
       }
       
@@ -191,7 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return true;
     } catch (error: any) {
       console.error('Google sign-in error:', error);
-      toast.error(error.message || 'Failed to sign in with Google');
+      toast.error(error?.message || 'Failed to sign in with Google');
       return false;
     }
   };
@@ -206,32 +198,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // Check if email already exists
-      const { data: emailExists, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-      
-      if (emailExists) {
-        toast.error('This email is already registered. Please log in instead.');
-        return false;
-      }
-      
       // Register the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          data: {
+            username
+          },
           emailRedirectTo: `${window.location.origin}/gallery`
         }
       });
       
       if (error) {
-        if (error.message.includes('password')) {
+        // Safely check error message to avoid "undefined" issues
+        const errorMessage = error.message || "Registration failed";
+        
+        if (errorMessage.includes && errorMessage.includes('password')) {
           toast.error('Password must be at least 6 characters long.');
         } else {
-          toast.error(error.message);
+          toast.error(errorMessage);
         }
         return false;
       }
@@ -248,6 +234,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const fileExt = avatar.name.split('.').pop();
         const fileName = `${data.user.id}-${Math.random().toString(36).slice(2)}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
+        
+        // Create the 'avatars' bucket if it doesn't exist
+        const { error: bucketError } = await supabase.storage.createBucket('avatars', {
+          public: true,
+          fileSizeLimit: 5242880, // 5MB
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+        });
+        
+        if (bucketError && !bucketError.message.includes('already exists')) {
+          console.error('Bucket creation error:', bucketError);
+        }
         
         const { error: uploadError } = await supabase.storage
           .from('avatars')
@@ -278,10 +275,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
       if (profileError) {
         console.error('Profile creation error:', profileError);
-        if (profileError.message.includes('duplicate')) {
+        
+        // Safely check error message to avoid "undefined" issues
+        const errorMessage = profileError.message || "";
+        
+        if (errorMessage.includes && errorMessage.includes('duplicate')) {
           toast.error('Username is already taken. Please choose a different one.');
+          
+          // Clean up the created user since profile creation failed
+          await supabase.auth.admin.deleteUser(data.user.id);
           return false;
         }
+        
+        // Continue even if profile creation fails - the user can update their profile later
+        toast.warning('Account created, but profile setup had issues. You can update your profile later.');
+      } else {
+        toast.success('Account created successfully!');
       }
       
       // Set user state if we have a session
@@ -298,11 +307,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAuthenticated(true);
       }
       
-      toast.success('Account created successfully!');
       return true;
     } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Failed to register');
+      toast.error(error?.message || 'Failed to register');
       return false;
     } finally {
       setIsLoading(false);
@@ -319,7 +327,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       toast.success('Logged out successfully');
     } catch (error: any) {
       console.error('Logout error:', error);
-      toast.error(error.message || 'Failed to logout');
+      toast.error(error?.message || 'Failed to logout');
     }
   };
 

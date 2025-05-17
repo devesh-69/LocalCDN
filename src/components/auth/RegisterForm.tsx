@@ -71,6 +71,8 @@ export const RegisterForm = () => {
         const from = location.state?.from?.pathname || '/gallery';
         navigate(from, { replace: true });
       }
+    } catch (error) {
+      console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -78,8 +80,13 @@ export const RegisterForm = () => {
   
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    await signInWithGoogle();
-    setIsGoogleLoading(false);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
   
   return (

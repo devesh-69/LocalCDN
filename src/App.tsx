@@ -21,7 +21,7 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-center" />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -35,14 +35,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/gallery" 
-              element={
-                <ProtectedRoute>
-                  <Gallery />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/gallery" element={<Gallery />} />
             <Route 
               path="/upload" 
               element={

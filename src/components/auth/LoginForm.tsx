@@ -33,6 +33,9 @@ export const LoginForm = () => {
         const from = location.state?.from?.pathname || '/gallery';
         navigate(from, { replace: true });
       }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setErrorMessage(error?.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -41,8 +44,14 @@ export const LoginForm = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     setErrorMessage(null);
-    await signInWithGoogle();
-    setIsGoogleLoading(false);
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
+      setErrorMessage(error?.message || "Failed to sign in with Google");
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
