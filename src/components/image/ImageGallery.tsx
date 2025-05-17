@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ImageCard from './ImageCard';
+import ImageGalleryPagination from './ImageGalleryPagination';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +12,9 @@ import { fetchImages, ImageItem } from '@/api/images';
 import { Link } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+// Number of images to display per page
+const IMAGES_PER_PAGE = 8;
+
 const ImageGallery = () => {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [stats, setStats] = useState<ImageStats>({ totalImages: 0, publicImages: 0, privateImages: 0 });
@@ -18,7 +22,12 @@ const ImageGallery = () => {
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [displayedImages, setDisplayedImages] = useState<ImageItem[]>([]);
+  
   const fetchImagesData = async () => {
     setLoading(true);
     setError(null);
@@ -26,6 +35,14 @@ const ImageGallery = () => {
       const data = await fetchImages(filter);
       setImages(data.images);
       setStats(data.stats);
+      
+      // Reset to first page when filter changes
+      setCurrentPage(1);
+      
+      // Calculate total pages
+      const calculatedTotalPages = Math.max(1, Math.ceil(data.images.length / IMAGES_PER_PAGE));
+      setTotalPages(calculatedTotalPages);
+      
     } catch (err: any) {
       console.error('Error fetching images:', err);
       setError(err.message || "Failed to load images");
@@ -43,6 +60,13 @@ const ImageGallery = () => {
     fetchImagesData();
   }, [filter]);
 
+  // Update displayed images when images array or current page changes
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * IMAGES_PER_PAGE;
+    const endIndex = startIndex + IMAGES_PER_PAGE;
+    setDisplayedImages(images.slice(startIndex, endIndex));
+  }, [images, currentPage]);
+
   const handleImageDelete = () => {
     // Refetch images after deletion
     fetchImagesData();
@@ -50,6 +74,12 @@ const ImageGallery = () => {
 
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of gallery when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -90,16 +120,25 @@ const ImageGallery = () => {
             </div>
           ))}
         </div>
-      ) : images.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {images.map(image => (
-            <ImageCard 
-              key={image.id} 
-              image={image} 
-              onDelete={handleImageDelete}
-            />
-          ))}
-        </div>
+      ) : displayedImages.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {displayedImages.map(image => (
+              <ImageCard 
+                key={image.id} 
+                image={image} 
+                onDelete={handleImageDelete}
+              />
+            ))}
+          </div>
+          
+          {/* Pagination */}
+          <ImageGalleryPagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 glass-effect rounded-lg">
           <div className="text-6xl mb-4">🖼️</div>
@@ -116,12 +155,6 @@ const ImageGallery = () => {
               <Upload className="mr-2 h-4 w-4" /> Upload Images
             </Button>
           </Link>
-        </div>
-      )}
-
-      {images.length > 0 && (
-        <div className="flex justify-center mt-8">
-          <Button variant="outline" className="glass-effect">Load More</Button>
         </div>
       )}
     </div>

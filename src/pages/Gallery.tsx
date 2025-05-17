@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Upload, Lock } from 'lucide-react';
-import Navbar from '@/components/layout/Navbar';
+import NavbarThemed from '@/components/layout/NavbarThemed';
 import ImageGallery from '@/components/image/ImageGallery';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,7 +15,7 @@ const Gallery = () => {
   
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <NavbarThemed />
       <main className="container py-8">
         <div className="flex flex-col space-y-4">
           <div className="flex justify-between items-center">
