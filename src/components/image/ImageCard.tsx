@@ -8,6 +8,7 @@ import { deleteImage } from '@/api/images';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ImageCardProps {
   image: ImageItem;
@@ -16,16 +17,28 @@ interface ImageCardProps {
 
 const ImageCard = ({ image, onDelete }: ImageCardProps) => {
   const { toast: uiToast } = useToast();
+  const { isAuthenticated } = useAuth();
   const [showFullImage, setShowFullImage] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  
+  const isPrivateAndNotAuthenticated = !isAuthenticated && !image.isPublic;
 
   const handleViewImage = () => {
+    if (isPrivateAndNotAuthenticated) {
+      toast.error("You need to log in to view private images");
+      return;
+    }
     setShowFullImage(true);
   };
 
   const handleDownload = () => {
+    if (isPrivateAndNotAuthenticated) {
+      toast.error("You need to log in to download private images");
+      return;
+    }
+    
     try {
       // Create an anchor element and set its attributes for downloading
       const link = document.createElement('a');
@@ -52,6 +65,11 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
   };
 
   const handleShare = async () => {
+    if (isPrivateAndNotAuthenticated) {
+      toast.error("You need to log in to share private images");
+      return;
+    }
+    
     try {
       setIsCopying(true);
       
@@ -127,8 +145,19 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
           <img
             src={image.url}
             alt={image.title}
-            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
+            className={`h-full w-full object-cover transition-all duration-300 group-hover:scale-105 ${
+              isPrivateAndNotAuthenticated ? 'blur-md' : ''
+            }`}
           />
+          
+          {isPrivateAndNotAuthenticated && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-black/50 text-white px-4 py-2 rounded-md text-center">
+                <Eye className="h-6 w-6 mx-auto mb-1" />
+                <p className="text-sm">Login to view</p>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Hover Overlay */}

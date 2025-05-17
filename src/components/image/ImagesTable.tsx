@@ -12,11 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Download, Trash, Share } from 'lucide-react';
+import { Eye, EyeOff, Download, Trash, Share, Lock } from 'lucide-react';
 import { ImageItem } from '@/api/images';
 import { toast } from 'sonner';
 import { deleteImage } from '@/api/images';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ImagesTableProps {
   images: ImageItem[];
@@ -30,6 +31,7 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const filteredImages = searchTerm 
     ? images.filter(image => 
@@ -39,6 +41,11 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
     : images;
 
   const handleDownload = (image: ImageItem) => {
+    if (!isAuthenticated && !image.isPublic) {
+      toast.error("You need to log in to download private images");
+      return;
+    }
+    
     try {
       const link = document.createElement('a');
       link.href = image.url;
@@ -56,6 +63,11 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
   };
 
   const handleShare = async (image: ImageItem) => {
+    if (!isAuthenticated && !image.isPublic) {
+      toast.error("You need to log in to share private images");
+      return;
+    }
+    
     try {
       let shareUrl = image.url;
       if (!shareUrl.startsWith('http')) {
@@ -130,6 +142,13 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
         </div>
       </div>
 
+      {!isAuthenticated && (
+        <div className="text-sm text-muted-foreground flex items-center space-x-1 mb-2">
+          <Lock className="h-3 w-3" />
+          <span>Private images require login to view, download or share</span>
+        </div>
+      )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -153,70 +172,81 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
                 </TableRow>
               ))
             ) : filteredImages.length > 0 ? (
-              filteredImages.map((image) => (
-                <TableRow key={image.id}>
-                  <TableCell>
-                    <div className="h-10 w-10 rounded-md overflow-hidden">
-                      <img 
-                        src={image.url} 
-                        alt={image.title} 
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{image.title || 'Untitled'}</div>
-                    {image.description && (
-                      <div className="text-xs text-muted-foreground truncate max-w-[300px]">{image.description}</div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      {image.isPublic ? (
-                        <div className="flex items-center text-green-500">
-                          <Eye className="h-4 w-4 mr-1" /> Public
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-blue-500">
-                          <EyeOff className="h-4 w-4 mr-1" /> Private
-                        </div>
+              filteredImages.map((image) => {
+                const isPrivateAndNotAuthenticated = !isAuthenticated && !image.isPublic;
+                
+                return (
+                  <TableRow key={image.id}>
+                    <TableCell>
+                      <div className="h-10 w-10 rounded-md overflow-hidden relative">
+                        <img 
+                          src={image.url} 
+                          alt={image.title} 
+                          className={`h-full w-full object-cover ${isPrivateAndNotAuthenticated ? 'blur-md' : ''}`}
+                        />
+                        {isPrivateAndNotAuthenticated && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <Lock className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{image.title || 'Untitled'}</div>
+                      {image.description && (
+                        <div className="text-xs text-muted-foreground truncate max-w-[300px]">{image.description}</div>
                       )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{new Date(image.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => handleDownload(image)}
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => handleShare(image)}
-                        title="Share"
-                      >
-                        <Share className="h-4 w-4" />
-                      </Button>
-                      {image.isOwner && (
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        {image.isPublic ? (
+                          <div className="flex items-center text-green-500">
+                            <Eye className="h-4 w-4 mr-1" /> Public
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-blue-500">
+                            <EyeOff className="h-4 w-4 mr-1" /> Private
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{new Date(image.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
                         <Button 
                           size="icon" 
                           variant="ghost" 
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => confirmDelete(image)}
-                          title="Delete"
+                          onClick={() => handleDownload(image)}
+                          title="Download"
+                          disabled={isPrivateAndNotAuthenticated}
                         >
-                          <Trash className="h-4 w-4" />
+                          <Download className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          onClick={() => handleShare(image)}
+                          title="Share"
+                          disabled={isPrivateAndNotAuthenticated}
+                        >
+                          <Share className="h-4 w-4" />
+                        </Button>
+                        {image.isOwner && (
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => confirmDelete(image)}
+                            title="Delete"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">

@@ -2,13 +2,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Upload, Lock } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import ImageGallery from '@/components/image/ImageGallery';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Gallery = () => {
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   
   return (
     <div className="min-h-screen bg-background">
@@ -27,6 +30,15 @@ const Gallery = () => {
               </Button>
             </Link>
           </div>
+          
+          {!isAuthenticated && (
+            <Alert className="bg-secondary/30">
+              <Lock className="h-4 w-4" />
+              <AlertDescription>
+                Private images are blurred. <Link to="/login" className="text-primary hover:text-primary/80 font-medium">Log in</Link> to view all images.
+              </AlertDescription>
+            </Alert>
+          )}
           
           <ImageGallery />
         </div>
