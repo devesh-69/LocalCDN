@@ -1,8 +1,6 @@
 
 import { supabase } from '@/lib/supabase';
 import { ImageStats } from '@/types/mongodb';
-import { validateFile } from '@/utils/fileValidation';
-import { ensureValidCdnUrl } from '@/utils/urlUtils';
 
 export interface ImageResponse {
   images: ImageItem[];
@@ -19,6 +17,39 @@ export interface ImageItem {
   userId: string;
   isOwner: boolean;
 }
+
+// Maximum file size in bytes (5MB)
+export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+export const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+
+// Validate file before uploading
+export const validateFile = (file: File): {valid: boolean; error?: string} => {
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      valid: false, 
+      error: `File size exceeds the maximum limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`
+    };
+  }
+  
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return {
+      valid: false,
+      error: `Invalid file type. Allowed types: ${ALLOWED_FILE_TYPES.map(t => t.split('/')[1]).join(', ')}`
+    };
+  }
+  
+  return { valid: true };
+};
+
+// Ensure URL is a valid CDN URL
+const ensureValidCdnUrl = (url: string): string => {
+  // Ensure the URL is absolute
+  if (!url.startsWith('http')) {
+    // Use base URL from Supabase
+    return `https://hhfbxftaburyxxjcomto.supabase.co${url.startsWith('/') ? url : '/' + url}`;
+  }
+  return url;
+};
 
 // Fetch images from Supabase with improved error handling
 export const fetchImages = async (filter: string = 'all'): Promise<ImageResponse> => {

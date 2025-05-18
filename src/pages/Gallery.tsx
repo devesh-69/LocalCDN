@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Upload, Lock } from 'lucide-react';
 import NavbarThemed from '@/components/layout/NavbarThemed';
+import ImageGallery from '@/components/image/ImageGallery';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import GalleryTabs from '@/components/layout/GalleryTabs';
 
 const Gallery = () => {
   const { toast } = useToast();
@@ -40,7 +40,7 @@ const Gallery = () => {
             </Alert>
           )}
           
-          <GalleryTabs />
+          <ImageGallery />
         </div>
       </main>
     </div>
