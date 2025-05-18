@@ -12,11 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Download, Trash, Share, Lock } from 'lucide-react';
+import { Eye, EyeOff, Lock } from 'lucide-react';
 import { ImageItem } from '@/api/images';
-import { toast } from 'sonner';
-import { deleteImage } from '@/api/images';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import ShareImage from './image-sharing/ShareImage';
+import DownloadImage from './image-actions/DownloadImage';
+import DeleteImage from './image-actions/DeleteImage';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ImagesTableProps {
@@ -28,9 +28,6 @@ interface ImagesTableProps {
 
 const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const { isAuthenticated } = useAuth();
 
   const filteredImages = searchTerm 
@@ -39,96 +36,6 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
         image.description?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : images;
-
-  const handleDownload = (image: ImageItem) => {
-    if (!isAuthenticated && !image.isPublic) {
-      toast.error("You need to log in to download private images");
-      return;
-    }
-    
-    try {
-      const link = document.createElement('a');
-      link.href = image.url;
-      const urlParts = image.url.split('/');
-      const filename = urlParts[urlParts.length - 1] || `${image.title || 'image'}.jpg`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.success("Download started");
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error("Failed to download image");
-    }
-  };
-
-  const handleShare = async (image: ImageItem) => {
-    if (!isAuthenticated && !image.isPublic) {
-      toast.error("You need to log in to share private images");
-      return;
-    }
-    
-    try {
-      // Always use the direct image URL as the CDN link
-      let cdnUrl = image.url;
-      
-      // Ensure the URL is absolute
-      if (!cdnUrl.startsWith('http')) {
-        cdnUrl = new URL(cdnUrl, window.location.origin).toString();
-      }
-      
-      // Remove any query parameters if present
-      cdnUrl = cdnUrl.split('?')[0];
-      
-      if (navigator.share && navigator.canShare) {
-        // Try native sharing if available and can share URL
-        const shareData = {
-          title: image.title || 'Shared Image',
-          text: image.description || 'Check out this image from localCDN!',
-          url: cdnUrl
-        };
-        
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          toast.success("Shared successfully!");
-        } else {
-          // Fallback to clipboard if the data can't be shared
-          await navigator.clipboard.writeText(cdnUrl);
-          toast.success("Image URL copied to clipboard");
-        }
-      } else {
-        // Fallback to clipboard copy
-        await navigator.clipboard.writeText(cdnUrl);
-        toast.success("Image URL copied to clipboard: " + cdnUrl);
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-      toast.error("Failed to share image: " + (error instanceof Error ? error.message : "Unknown error"));
-    }
-  };
-
-  const confirmDelete = (image: ImageItem) => {
-    setSelectedImage(image);
-    setShowDeleteConfirm(true);
-  };
-
-  const handleDelete = async () => {
-    if (isDeleting || !selectedImage) return;
-    
-    try {
-      setIsDeleting(true);
-      await deleteImage(selectedImage.id);
-      toast.success("Image deleted successfully");
-      setShowDeleteConfirm(false);
-      // Refresh the images list
-      onFilterChange(currentFilter);
-    } catch (error: any) {
-      console.error('Error deleting image:', error);
-      toast.error(error.message || "Failed to delete the image");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -228,34 +135,26 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
                     <TableCell>{new Date(image.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          onClick={() => handleDownload(image)}
-                          title="Download"
-                          disabled={isPrivateAndNotAuthenticated}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          onClick={() => handleShare(image)}
-                          title="Share"
-                          disabled={isPrivateAndNotAuthenticated}
-                        >
-                          <Share className="h-4 w-4" />
-                        </Button>
+                        <DownloadImage 
+                          image={image}
+                          isPrivateAndNotAuthenticated={isPrivateAndNotAuthenticated}
+                          size="icon"
+                          variant="ghost"
+                        />
+                        
+                        <ShareImage 
+                          image={image}
+                          isPrivateAndNotAuthenticated={isPrivateAndNotAuthenticated}
+                          size="icon"
+                          variant="ghost"
+                        />
+                        
                         {image.isOwner && (
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
+                          <DeleteImage 
+                            image={image}
+                            onDelete={() => onFilterChange(currentFilter)}
                             className="text-destructive hover:bg-destructive/10"
-                            onClick={() => confirmDelete(image)}
-                            title="Delete"
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
+                          />
                         )}
                       </div>
                     </TableCell>
@@ -282,26 +181,6 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
           </TableBody>
         </Table>
       </div>
-
-      {/* Delete confirmation dialog */}
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="glass-modal">
-          <DialogHeader>
-            <DialogTitle>Delete Image</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this image? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex justify-end gap-2 mt-4 sm:justify-end">
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
