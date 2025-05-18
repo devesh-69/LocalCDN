@@ -73,33 +73,41 @@ const ImageCard = ({ image, onDelete }: ImageCardProps) => {
     try {
       setIsCopying(true);
       
-      // Prepare URL - ensure it's clean and properly formatted
-      let shareUrl = image.url;
+      // Always use the direct image URL as the CDN link
+      let cdnUrl = image.url;
       
-      // Handle HTTP vs HTTPS if needed
-      if (!shareUrl.startsWith('http')) {
-        shareUrl = `https://${shareUrl}`;
+      // Ensure the URL is absolute
+      if (!cdnUrl.startsWith('http')) {
+        cdnUrl = new URL(cdnUrl, window.location.origin).toString();
       }
       
-      // Trim trailing slashes
-      shareUrl = shareUrl.replace(/\/+$/, '');
+      // Remove any query parameters if present
+      cdnUrl = cdnUrl.split('?')[0];
       
-      if (navigator.share) {
-        // Use native share if available
-        await navigator.share({
+      if (navigator.share && navigator.canShare) {
+        // Try native sharing if available and can share URL
+        const shareData = {
           title: image.title || 'Shared Image',
           text: image.description || 'Check out this image from localCDN!',
-          url: shareUrl,
-        });
-        toast.success("Shared successfully!");
+          url: cdnUrl
+        };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          toast.success("Shared successfully!");
+        } else {
+          // Fallback to clipboard if the data can't be shared
+          await navigator.clipboard.writeText(cdnUrl);
+          toast.success("Image URL copied to clipboard");
+        }
       } else {
         // Fallback to clipboard copy
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success("Image URL copied to clipboard");
+        await navigator.clipboard.writeText(cdnUrl);
+        toast.success("Image URL copied to clipboard: " + cdnUrl);
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      toast.error("Failed to share image");
+      toast.error("Failed to share image: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsCopying(false);
     }

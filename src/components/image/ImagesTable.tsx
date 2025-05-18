@@ -69,26 +69,41 @@ const ImagesTable = ({ images, loading, onFilterChange, currentFilter }: ImagesT
     }
     
     try {
-      let shareUrl = image.url;
-      if (!shareUrl.startsWith('http')) {
-        shareUrl = `https://${shareUrl}`;
-      }
-      shareUrl = shareUrl.replace(/\/+$/, '');
+      // Always use the direct image URL as the CDN link
+      let cdnUrl = image.url;
       
-      if (navigator.share) {
-        await navigator.share({
+      // Ensure the URL is absolute
+      if (!cdnUrl.startsWith('http')) {
+        cdnUrl = new URL(cdnUrl, window.location.origin).toString();
+      }
+      
+      // Remove any query parameters if present
+      cdnUrl = cdnUrl.split('?')[0];
+      
+      if (navigator.share && navigator.canShare) {
+        // Try native sharing if available and can share URL
+        const shareData = {
           title: image.title || 'Shared Image',
           text: image.description || 'Check out this image from localCDN!',
-          url: shareUrl,
-        });
-        toast.success("Shared successfully!");
+          url: cdnUrl
+        };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          toast.success("Shared successfully!");
+        } else {
+          // Fallback to clipboard if the data can't be shared
+          await navigator.clipboard.writeText(cdnUrl);
+          toast.success("Image URL copied to clipboard");
+        }
       } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success("Image URL copied to clipboard");
+        // Fallback to clipboard copy
+        await navigator.clipboard.writeText(cdnUrl);
+        toast.success("Image URL copied to clipboard: " + cdnUrl);
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      toast.error("Failed to share image");
+      toast.error("Failed to share image: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   };
 

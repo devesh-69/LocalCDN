@@ -41,6 +41,16 @@ export const validateFile = (file: File): {valid: boolean; error?: string} => {
   return { valid: true };
 };
 
+// Ensure URL is a valid CDN URL
+const ensureValidCdnUrl = (url: string): string => {
+  // Ensure the URL is absolute
+  if (!url.startsWith('http')) {
+    // Use base URL from Supabase
+    return `https://hhfbxftaburyxxjcomto.supabase.co${url.startsWith('/') ? url : '/' + url}`;
+  }
+  return url;
+};
+
 // Fetch images from Supabase with improved error handling
 export const fetchImages = async (filter: string = 'all'): Promise<ImageResponse> => {
   try {
@@ -89,10 +99,10 @@ export const fetchImages = async (filter: string = 'all'): Promise<ImageResponse
     const totalImages = statsData ? statsData.length : 0;
     const publicImages = statsData ? statsData.filter(img => img.is_public).length : 0;
     
-    // Map response and check ownership
+    // Map response and check ownership, ensuring all URLs are valid CDN URLs
     const images = data ? data.map((item: any) => ({
       id: item.id,
-      url: item.url,
+      url: ensureValidCdnUrl(item.url),
       title: item.title,
       description: item.description,
       isPublic: item.is_public,
